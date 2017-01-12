@@ -384,7 +384,7 @@ int main(int argc, char *argv[])
 	}
 
 	MSG_OUT("Opening %s\n", LPC_CTRL_PATH);
-	context->fds[LPC_CTRL_FD].fd = open(LPC_CTRL_PATH, O_RDWR);
+	context->fds[LPC_CTRL_FD].fd = open(LPC_CTRL_PATH, O_RDWR | O_SYNC);
 	if (context->fds[LPC_CTRL_FD].fd < 0) {
 		r = -errno;
 		MSG_ERR("Couldn't open %s with flags O_RDWR: %s\n",
