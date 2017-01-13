@@ -188,7 +188,7 @@ static int dispatch_mbox(struct mbox_context *context)
 		goto out;
 	}
 	if (r < sizeof(req.msg)) {
-		MSG_ERR("Short read: %d expecting %u\n", r, sizeof(req.msg));
+		MSG_ERR("Short read: %d expecting %lu\n", r, sizeof(req.msg));
 		r = -1;
 		goto out;
 	}
