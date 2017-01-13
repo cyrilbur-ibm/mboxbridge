@@ -77,7 +77,7 @@ static int point_to_flash(void)
 	 * expectations as to where the flash is we can't use the kernel
 	 * provided UNMAP ioctl().
 	 *
-	 * That that ioctl() does is detect the size of the flash and map it
+	 * What that ioctl() does is detect the size of the flash and map it
 	 * appropriately on the LPC bus on the host. The issue with this is that
 	 * if a machine has a different flash size to what hostboot expects the
 	 * mapping will be incorrect.
