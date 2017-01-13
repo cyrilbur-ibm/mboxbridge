@@ -33,6 +33,7 @@
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
+#include <inttypes.h>
 
 #include <mtd/mtd-abi.h>
 
@@ -77,10 +78,10 @@ static int point_to_flash(void)
 	 * expectations as to where the flash is we can't use the kernel
 	 * provided UNMAP ioctl().
 	 *
-	 * That that ioctl() does is detect the size of the flash and map it
-	 * appropriately on the LPC bus on the host. The issue with this is that
-	 * if a machine has a different flash size to what hostboot expects the
-	 * mapping will be incorrect.
+	 * What the UNMAP ioctl() does is detect the size of the flash and map
+	 * it appropriately on the LPC bus on the host. The issue with this is
+	 * that if a machine has a different flash size to what hostboot
+	 * expects the mapping will be incorrect.
 	 *
 	 * For example 32MB of flash for a platform would mean that hostboot
 	 * expects  flash to be at 0x0e000000 - 0x0fffffff on the LPC bus. If
@@ -188,7 +189,7 @@ static int dispatch_mbox(struct mbox_context *context)
 		goto out;
 	}
 	if (r < sizeof(req.msg)) {
-		MSG_ERR("Short read: %d expecting %u\n", r, sizeof(req.msg));
+		MSG_ERR("Short read: %d expecting %lu\n", r, sizeof(req.msg));
 		r = -1;
 		goto out;
 	}
@@ -238,8 +239,13 @@ static int dispatch_mbox(struct mbox_context *context)
 			 * the window...
 			 * This approach is easiest.
 			 */
-			if (context->dirty)
-				read(-context->fds[MTD_FD].fd, context->lpc_mem, context->size);
+			if (context->dirty) {
+				r = read(-context->fds[MTD_FD].fd, context->lpc_mem, context->size);
+				if (r != context->size) {
+					MSG_ERR("Short read: %d expecting %"PRIu32"\n", r, context->size);
+					goto out;
+				}
+			}
 			basepg += get_u16(&req.msg.data[0]);
 			put_u16(&resp.msg.data[0], basepg);
 			resp.msg.response = MBOX_R_SUCCESS;
@@ -338,7 +344,7 @@ int main(int argc, char *argv[])
 	static const struct option long_options[] = {
 		{ "verbose", no_argument, 0, 'v' },
 		{ "syslog",  no_argument, 0, 's' },
-		{ 0,         0,           0,  0  }
+		{ 0,	     0,		  0,  0  }
 	};
 
 	context = calloc(1, sizeof(*context));
@@ -384,7 +390,7 @@ int main(int argc, char *argv[])
 	}
 
 	MSG_OUT("Opening %s\n", LPC_CTRL_PATH);
-	context->fds[LPC_CTRL_FD].fd = open(LPC_CTRL_PATH, O_RDWR);
+	context->fds[LPC_CTRL_FD].fd = open(LPC_CTRL_PATH, O_RDWR | O_SYNC);
 	if (context->fds[LPC_CTRL_FD].fd < 0) {
 		r = -errno;
 		MSG_ERR("Couldn't open %s with flags O_RDWR: %s\n",
