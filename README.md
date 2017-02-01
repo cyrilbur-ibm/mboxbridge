@@ -32,7 +32,7 @@ cases for a back channel for the BMC to pass new information to the
 host which will be discussed later.
 
 To initiate a request the host must set a command code (see
-Commands) into byte 0 of the mailbox registers. It is also the hosts
+Commands) into mailbox data register 0. It is also the hosts
 responsibility to generate a unique sequence number into mailbox
 register 1. After this any command specific data should be written
 (see Layout). The host must then generate an interrupt to the BMC by
@@ -46,20 +46,20 @@ Register) the BMC should read the message from the general registers
 of the mailbox and perform the necessary action before responding. On
 responding the BMC must ensure that the sequence number is the same as
 the one in the request from the host. The BMC must also ensure that
-mailbox byte 13 is a valid response code (see Responses). The BMC
-should then use its control register to generate an interrupt for
-the host to notify of it of a response.
+mailbox data regsiter 13 is a valid response code (see Responses). The
+BMC should then use its control register to generate an interrupt for
+the host to notify it of a response.
 
 
 ### BMC to host
 BMC to host communication is also possible for notification of events
 from the BMC. This requires that the host have interrupts enabled on
-mailbox byte 15 (or otherwise poll on byte 7 of mailbox status
+mailbox data register 15 (or otherwise poll on bit 7 of mailbox status
 register 1). On receiving such a notification the host should read
-mailbox byte 15 to determine which bit has been set in order to
-determine the message, see BMC Event notifications in Commands in
-detail. After performing the necessary action the host should send a
-BMC_EVENT_ACK message to the BMC with which bit it has actioned.
+mailbox data register 15 to determine the event code was set by the
+BMC see BMC Event notifications in Commands for detail. After
+performing the necessary action the host should send a BMC_EVENT_ACK
+message to the BMC with which bit it has actioned.
 
 ---
 
@@ -67,7 +67,7 @@ BMC_EVENT_ACK message to the BMC with which bit it has actioned.
 ```
 Byte 0: COMMAND
 Byte 1: Sequence
-Byte 2-12: Data
+Byte 2-12: Arguments
 Byte 13: Response code
 Byte 14: Host controlled status reg
 Byte 15: BMC controlled status reg
@@ -87,7 +87,7 @@ BMC_EVENT_ACK
 ## Sequence
 Unique message sequence number to be allocated by the host at the
 start of a command/response pair. The BMC must ensure the responses to
-a particular message contain the same sequence number than was in the
+a particular message contain the same sequence number that was in the
 request from the host.
 
 ## Responses
@@ -100,9 +100,10 @@ TIMEOUT
 ```
 
 ## Information
-- Interrupts via control regs
-- All multibyte messages are LSB (little endian)
+- All multibyte messages are LSB first(little endian)
 - All responses must have a valid return code in byte 13
+
+Only one window can be open at once.
 
 ### Commands in detail
 ```
@@ -121,19 +122,19 @@ TIMEOUT
 
 	Command:
 		GET_MBOX_INFO
-		Data:
-			Data 0: API version
+		Arguements:
+			Args 0: API version
 
 		Response:
-			Data 0: API version
-			Data 1-2: read window size in block size
-			Data 3-4: write window size in block size
-			Data 5: Block size in power of two.
+			Args 0: API version
+			Args 1-2: read window size as number of blocks
+			Args 3-4: write window size as number of block
+			Args 5: Block size as power of two.
 
 
 	Command:
 		CLOSE_WINDOW
-		Data:
+		Arguments:
 			-
 		Response:
 			-
@@ -143,43 +144,43 @@ TIMEOUT
 
 	Command:
 		GET_FLASH_INFO
-		Data:
+		Arguments:
 			-
 		Response:
-			Data 0-3: Flash size in bytes
-			Data 4-7: Erase granule in bytes
+			Args 0-3: Flash size in bytes
+			Args 4-7: Erase granule in bytes
 
 
 	Command:
 		CREATE_READ_WINDOW
-		Data:
-			Data 0-1: Read window offset in block size
-		Response:
-			Data 0-1: Read window position in block size
+		Arguments:
+			Args 0-1: Read window offset as number of blocks
+		Respons:
+			Args 0-1: Read window position as number of blocks
 		Notes:
 			Offset is the offset within the flash, always specified
 			  from zero.
-			Position is where flash at the requested off is mapped on
-			  the LPC bus as viewed from the host.
+			Position is where flash at the requested offset is mapped
+			  on the LPC bus as viewed from the host.
 
 
 	Command:
 		CREATE_WRITE_WINDOW
-		Data:
-			Data 0-1: Write window offset in block size
+		ARguments:
+			Args 0-1: Write window offset as number of blocks
 		Response:
-			Data 0-1: Write window position in block size
+			Args 0-1: Write window position as number of blocks
 		Notes:
 			Offset is the offset within the flash, always specified
 			  from zero.
-			Position is where flash at the requested off is mapped on
-			  the LPC bus as viewed from the host.
+			Position is where flash at the requested offset is mapped
+			  on the LPC bus as viewed from the host.
 
 
 	Command:
 		MARK_WRITE_DIRTY
 		Data:
-			Data 0-1: Where within window in block size
+			Data 0-1: Where within window as number of blocks
 			Data 2-5: Number of dirty bytes
 		Response:
 			-
@@ -188,14 +189,15 @@ TIMEOUT
 			block within the window - zero refers to the first block of
 			the mapping.
 			This command marks bytes as dirty but does not nessesarily
-			flush them to flash. This command is expected not to block
-			during a write.
+			flush them to flash. It is expected that this command will
+			respond quickly without actually performing a write to the
+			backing store.
 
 
 	Command
 		WRITE_FLUSH
 		Data:
-			Data 0-1: Where within window in block size
+			Data 0-1: Where within window as number of blocks
 			Data 2-5: Number of dirty bytes
 		Response:
 			-
@@ -212,9 +214,9 @@ TIMEOUT
 	Command:
 		BMC_EVENT_ACK
 		Data:
-			Bits in the BMC status reg (register 15) to ack
+			Bits in the BMC status byte (mailbox data register 15) to ack
 		Response:
-			*clears the bits in register 15*
+			*clears the bits in mailbox data register 15*
 			-
 		Notes:
 			The host will use this command to acknoledge BMC events
