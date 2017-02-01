@@ -74,15 +74,15 @@ Byte 15: BMC controlled status reg
 ```
 ## Commands
 ```
-RESET_STATE
-GET_MBOX_INFO
-CLOSE_WINDOW
-GET_FLASH_INFO
-CREATE_READ_WINDOW
-CREATE_WRITE_WINDOW
-MARK_WRITE_DIRTY
-WRITE_FLUSH
-BMC_EVENT_ACK
+RESET_STATE          1
+GET_MBOX_INFO        2
+GET_FLASH_INFO       3
+CREATE_READ_WINDOW   4
+CLOSE_WINDOW         5
+CREATE_WRITE_WINDOW  6
+MARK_WRITE_DIRTY     7
+WRITE_FLUSH          8
+BMC_EVENT_ACK        9
 ```
 ## Sequence
 Unique message sequence number to be allocated by the host at the
@@ -92,11 +92,11 @@ request from the host.
 
 ## Responses
 ```
-SUCCESS
-PARAM_ERROR
-WRITE_ERROR
-SYSTEM_ERROR
-TIMEOUT
+SUCCESS       1
+PARAM_ERROR   2
+WRITE_ERROR   3
+SYSTEM_ERROR  4
+TIMEOUT       5
 ```
 
 ## Information
